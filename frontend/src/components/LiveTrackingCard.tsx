@@ -20,11 +20,9 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({ tracking }) 
     x: (longitude - (startPoint?.[1] ?? longitude)) * 111320 * Math.cos(startLatitudeRadians),
     y: (latitude - (startPoint?.[0] ?? latitude)) * 111320,
   }));
-  const maximumOffset = Math.max(1, ...localPath.map((point) => Math.max(Math.abs(point.x), Math.abs(point.y))));
-  const mapScale = maximumOffset / 140;
   const routePoints = localPath.map((point) => ({
-    x: 200 + point.x / mapScale,
-    y: 100 - point.y / mapScale,
+    x: 200 + point.x * 3,
+    y: 100 - point.y * 3,
   }));
   const routePolyline = routePoints.map((point) => `${point.x},${point.y}`).join(" ");
   const currentMapPoint = routePoints[routePoints.length - 1] || { x: 230, y: 100 };

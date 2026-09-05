@@ -41,7 +41,10 @@ const initialGpsTracking: GpsTrackingState = {
   steps: 0,
 };
 
-const distanceBetweenPoints = (first: GeolocationCoordinates, second: GeolocationCoordinates) => {
+const distanceBetweenPoints = (
+  first: Pick<GeolocationCoordinates, "latitude" | "longitude">,
+  second: Pick<GeolocationCoordinates, "latitude" | "longitude">,
+) => {
   const earthRadiusMeters = 6371000;
   const latitudeDelta = ((second.latitude - first.latitude) * Math.PI) / 180;
   const longitudeDelta = ((second.longitude - first.longitude) * Math.PI) / 180;
@@ -133,20 +136,22 @@ export default function Home() {
   useEffect(() => {
     if (!isLoggedIn || typeof navigator === "undefined" || !navigator.geolocation) return;
 
-    let previousPosition: GeolocationPosition | null = null;
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        if (position.coords.accuracy > 25) return;
-
-        const movementMeters = previousPosition
-          ? distanceBetweenPoints(previousPosition.coords, position.coords)
-          : 0;
-        previousPosition = position;
-
-        if (movementMeters > 0 && (movementMeters < 3 || movementMeters > 50)) return;
+        if (position.coords.accuracy > 15) return;
 
         setGpsTracking((previous) => {
-          const totalDistanceMeters = previous.totalDistanceMeters + movementMeters;
+          const lastPoint = previous.path[previous.path.length - 1];
+          const movementMeters = lastPoint
+            ? distanceBetweenPoints(
+              {
+                latitude: lastPoint.latitude,
+                longitude: lastPoint.longitude,
+              },
+              position.coords,
+            )
+            : 0;
+          const validMovementMeters = movementMeters > 1.5 ? movementMeters : 0;
           const nextPoint = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -155,8 +160,8 @@ export default function Home() {
 
           return {
             path: [...previous.path, nextPoint].slice(-100),
-            totalDistanceMeters,
-            steps: Math.floor(totalDistanceMeters / 0.762),
+            totalDistanceMeters: previous.totalDistanceMeters + validMovementMeters,
+            steps: Math.floor((previous.totalDistanceMeters + validMovementMeters) / 0.762),
           };
         });
       },
