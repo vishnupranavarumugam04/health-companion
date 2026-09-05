@@ -1,0 +1,279 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --accent-teal: #0d9488;
+    --accent-cyan: #0891b2;
+    --accent-blue: #2563eb;
+  }
+
+  .dark {
+    --bg-main: #090d16;
+    --bg-card: #111827;
+    --border-color: #1f2937;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-teal: #14b8a6;
+    --accent-cyan: #22d3ee;
+    --accent-blue: #3b82f6;
+  }
+}
+
+html, body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out;
+  overflow-x: hidden;
+}
+
+/* Custom Grid Pattern for GPS Map & Radar */
+.bg-map-pattern {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(148, 163, 184, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+}
+
+.dark .bg-map-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(30, 41, 59, 0.4) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 41, 59, 0.4) 1px, transparent 1px);
+}
+
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes metric-wave-sweep {
+  0% { stroke-dashoffset: 140; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes metric-pulse-dot {
+  0%, 100% { opacity: 0.35; transform: scale(0.65); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+@keyframes metric-bar-pulse {
+  0%, 100% { transform: scaleY(0.72); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes metric-temperature-wave {
+  0% { stroke-dashoffset: 90; transform: translateY(1px); }
+  50% { stroke-dashoffset: 0; transform: translateY(-1.5px); }
+  100% { stroke-dashoffset: -90; transform: translateY(1px); }
+}
+
+@keyframes activity-shimmer {
+  0% { background-position: 200% 0; opacity: 0.8; box-shadow: 0 0 6px rgba(34, 211, 238, 0.45); }
+  50% { opacity: 1; box-shadow: 0 0 14px rgba(34, 211, 238, 0.9); }
+  100% { background-position: -100% 0; opacity: 0.8; box-shadow: 0 0 6px rgba(34, 211, 238, 0.45); }
+}
+
+.metric-wave {
+  stroke-dasharray: 38 102;
+  animation: metric-wave-sweep linear infinite;
+}
+
+.metric-pulse-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: metric-pulse-dot ease-in-out infinite;
+}
+
+.metric-bar {
+  transform-origin: bottom;
+  animation: metric-bar-pulse 1.8s ease-in-out infinite;
+}
+
+.metric-temperature-wave {
+  stroke-dasharray: 45 45;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: metric-temperature-wave 3.5s ease-in-out infinite;
+}
+
+.activity-shimmer {
+  background-size: 200% 100%;
+  background-image: linear-gradient(110deg, #06b6d4 0%, #67e8f9 42%, #ffffff 50%, #67e8f9 58%, #22d3ee 100%);
+  animation: activity-shimmer 1.8s linear infinite;
+}
+
+.animate-radar {
+  animation: radar-sweep 5s linear infinite;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.light [class*="bg-slate-950"],
+.light [class*="bg-slate-900"],
+.light [class*="bg-slate-800"] {
+  background-color: #ffffff;
+}
+
+.light [class*="border-slate-800"],
+.light [class*="border-slate-700"] {
+  border-color: #e2e8f0;
+}
+
+.light [class*="text-white"],
+.light [class*="text-slate-100"],
+.light [class*="text-slate-200"],
+.light [class*="text-slate-300"] {
+  color: #0f172a;
+}
+
+/* Shared Whoop-inspired visual language for the authenticated app shell. */
+.whoop-shell {
+  --whoop-bg: #0b0c0b;
+  --whoop-surface: #171918;
+  --whoop-elevated: #202320;
+  --whoop-border: #2b302b;
+  --whoop-text: #f1f3eb;
+  --whoop-muted: #9da398;
+  --whoop-accent: #d7f36b;
+  background: var(--whoop-bg) !important;
+  color: var(--whoop-text);
+}
+
+.light .whoop-shell {
+  --whoop-bg: #f4f5ef;
+  --whoop-surface: #ffffff;
+  --whoop-elevated: #e9ece3;
+  --whoop-border: #d9ded2;
+  --whoop-text: #20231f;
+  --whoop-muted: #687064;
+  --whoop-accent: #6b8610;
+}
+
+.whoop-shell [class*="bg-slate-950"],
+.whoop-shell [class*="bg-slate-900"],
+.whoop-shell [class*="bg-slate-800"] {
+  background-color: var(--whoop-surface) !important;
+}
+
+.whoop-shell [class*="border-slate-800"],
+.whoop-shell [class*="border-slate-700"] {
+  border-color: var(--whoop-border) !important;
+}
+
+.whoop-shell [class*="text-white"],
+.whoop-shell [class*="text-slate-100"],
+.whoop-shell [class*="text-slate-200"] {
+  color: var(--whoop-text) !important;
+}
+
+.whoop-shell [class*="text-slate-300"],
+.whoop-shell [class*="text-slate-400"],
+.whoop-shell [class*="text-slate-500"] {
+  color: var(--whoop-muted) !important;
+}
+
+.whoop-shell [class*="text-cyan-400"],
+.whoop-shell [class*="text-cyan-300"] {
+  color: var(--whoop-accent) !important;
+}
+
+.whoop-shell [class*="bg-cyan-500"],
+.whoop-shell [class*="bg-cyan-950"] {
+  background-color: color-mix(in srgb, var(--whoop-accent) 14%, transparent) !important;
+}
+
+.whoop-shell [class*="border-cyan-500"] {
+  border-color: color-mix(in srgb, var(--whoop-accent) 42%, transparent) !important;
+}
+
+.whoop-shell [class*="rounded-3xl"] {
+  border-radius: 1rem !important;
+}
+
+.whoop-shell [class*="rounded-2xl"] {
+  border-radius: 0.8rem !important;
+}
+
+.whoop-shell [class*="shadow-[0_0"] {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14) !important;
+}
+
+.whoop-shell nav {
+  background-color: color-mix(in srgb, var(--whoop-surface) 94%, transparent) !important;
+  border-color: var(--whoop-border) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22) !important;
+}
+
+.whoop-shell button[class*="text-cyan-400"] {
+  color: var(--whoop-accent) !important;
+}
+
+.history-chart-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: history-chart-draw 0.8s ease-out forwards;
+}
+
+.history-chart-area {
+  opacity: 0;
+  animation: history-chart-fade 0.5s ease-out 0.25s forwards;
+}
+
+@keyframes history-chart-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes history-chart-fade {
+  to { opacity: 1; }
+}
+
+@keyframes spama-raw-scroll {
+  0% { stroke-dashoffset: 1; transform: translateY(0); }
+  25% { transform: translateY(-1px); }
+  50% { stroke-dashoffset: 0; transform: translateY(1.5px); }
+  75% { transform: translateY(-1.25px); }
+  100% { stroke-dashoffset: -1; transform: translateY(0); }
+}
+
+@keyframes spama-clean-scroll {
+  0% { stroke-dashoffset: 1; transform: translateY(0); }
+  50% { transform: translateY(-0.5px); }
+  100% { stroke-dashoffset: -1; transform: translateY(0); }
+}
+
+.spama-raw-wave {
+  stroke-dasharray: 0.18 0.08;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spama-raw-scroll 0.9s linear infinite;
+}
+
+.spama-clean-wave {
+  stroke-dasharray: 0.28 0.12;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spama-clean-scroll 2.8s linear infinite;
+}

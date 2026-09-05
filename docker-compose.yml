@@ -1,0 +1,28 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_MQTT_BROKER_URL: ${NEXT_PUBLIC_MQTT_BROKER_URL:-ws://localhost}
+        NEXT_PUBLIC_MQTT_BROKER_PORT: ${NEXT_PUBLIC_MQTT_BROKER_PORT:-9001}
+    ports:
+      - "3000:3000"
+    depends_on:
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./backend/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
