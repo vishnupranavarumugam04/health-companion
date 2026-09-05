@@ -136,12 +136,14 @@ export default function Home() {
     let previousPosition: GeolocationPosition | null = null;
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        if (position.coords.accuracy > 50) return;
+        if (position.coords.accuracy > 25) return;
 
         const movementMeters = previousPosition
           ? distanceBetweenPoints(previousPosition.coords, position.coords)
           : 0;
         previousPosition = position;
+
+        if (movementMeters > 0 && (movementMeters < 3 || movementMeters > 50)) return;
 
         setGpsTracking((previous) => {
           const totalDistanceMeters = previous.totalDistanceMeters + movementMeters;
@@ -159,11 +161,11 @@ export default function Home() {
         });
       },
       () => undefined,
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 },
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [isLoggedIn, user.heightCm]);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const storageKey = "startTime";
@@ -570,8 +572,7 @@ export default function Home() {
               temp={vitals.temp}
               hrv={vitals.hrv}
               steps={gpsTracking.steps}
-              calories={vitals.calories}
-              gpsTracking={gpsTracking}
+              calories={gpsTracking.steps * 0.04}
               fingerPresent={vitals.fingerPresent}
               hasWarning={hasWarning}
               warningMessage={activeWarnings[0]?.message}

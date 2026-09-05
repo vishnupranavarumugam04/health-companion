@@ -3,10 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { HeaderSection } from "./HeaderSection";
 import { MetricsGrid } from "./MetricsGrid";
-import { LiveTrackingCard } from "./LiveTrackingCard";
 import { WhoopMonitorPanel } from "./WhoopMonitorPanel";
 import { MetricDetailData } from "./MetricDetailModal";
-import { GpsTrackingState } from "@/types/health";
 import { getDecryptedTelemetryRecords } from "@/utils/telemetryBuffer";
 
 interface DashboardViewProps {
@@ -17,7 +15,6 @@ interface DashboardViewProps {
   hrv: string | number;
   steps: number;
   calories: number;
-  gpsTracking: GpsTrackingState;
   fingerPresent: number;
   hasWarning: boolean;
   warningMessage?: string | null;
@@ -34,7 +31,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   hrv,
   steps,
   calories,
-  gpsTracking,
   fingerPresent,
   hasWarning,
   warningMessage,
@@ -186,8 +182,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         sleep={sleep}
       />
 
-      {/* Live Tracking Map Card */}
-      <LiveTrackingCard tracking={gpsTracking} />
     </div>
   );
 };
