@@ -24,3 +24,7 @@ self.addEventListener("sync", (event) => {
 
 void TELEMETRY_DB;
 void TELEMETRY_STORE;
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(fetch(event.request));
+});
