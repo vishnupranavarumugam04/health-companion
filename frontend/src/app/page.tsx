@@ -134,7 +134,6 @@ export default function Home() {
     if (!isLoggedIn || typeof navigator === "undefined" || !navigator.geolocation) return;
 
     let previousPosition: GeolocationPosition | null = null;
-    const strideLengthMeters = Math.max(0.55, Math.min(0.9, user.heightCm * 0.415 / 100));
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         if (position.coords.accuracy > 50) return;
@@ -155,12 +154,12 @@ export default function Home() {
           return {
             path: [...previous.path, nextPoint].slice(-100),
             totalDistanceMeters,
-            steps: Math.round(totalDistanceMeters / strideLengthMeters),
+            steps: Math.floor(totalDistanceMeters / 0.762),
           };
         });
       },
       () => undefined,
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
@@ -570,7 +569,7 @@ export default function Home() {
               spo2={vitals.spo2}
               temp={vitals.temp}
               hrv={vitals.hrv}
-              steps={vitals.steps}
+              steps={gpsTracking.steps}
               calories={vitals.calories}
               gpsTracking={gpsTracking}
               fingerPresent={vitals.fingerPresent}

@@ -11,44 +11,35 @@ interface LiveTrackingCardProps {
 export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({ tracking }) => {
   const firstPoint = tracking.path[0];
   const currentPoint = tracking.path[tracking.path.length - 1];
-  const [deviceCoordinates, setDeviceCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   const [environment, setEnvironment] = useState<{ temperature: number; humidity: number; aqi: number } | null>(null);
   const [environmentLoading, setEnvironmentLoading] = useState(false);
-  const latitudes = tracking.path.map((point) => point.latitude);
-  const longitudes = tracking.path.map((point) => point.longitude);
-  const minLatitude = Math.min(...latitudes);
-  const maxLatitude = Math.max(...latitudes);
-  const minLongitude = Math.min(...longitudes);
-  const maxLongitude = Math.max(...longitudes);
-  const latitudeRange = maxLatitude - minLatitude || 0.001;
-  const longitudeRange = maxLongitude - minLongitude || 0.001;
-  const routePoints = tracking.path.map((point) => ({
-    x: 30 + ((point.longitude - minLongitude) / longitudeRange) * 340,
-    y: 170 - ((point.latitude - minLatitude) / latitudeRange) * 140,
+  const pathHistory = tracking.path.map((point) => [point.latitude, point.longitude] as [number, number]);
+  const startPoint = pathHistory[0];
+  const startLatitudeRadians = startPoint ? (startPoint[0] * Math.PI) / 180 : 0;
+  const localPath = pathHistory.map(([latitude, longitude]) => ({
+    x: (longitude - (startPoint?.[1] ?? longitude)) * 111320 * Math.cos(startLatitudeRadians),
+    y: (latitude - (startPoint?.[0] ?? latitude)) * 111320,
+  }));
+  const maximumOffset = Math.max(1, ...localPath.map((point) => Math.max(Math.abs(point.x), Math.abs(point.y))));
+  const mapScale = maximumOffset / 140;
+  const routePoints = localPath.map((point) => ({
+    x: 200 + point.x / mapScale,
+    y: 100 - point.y / mapScale,
   }));
   const routePolyline = routePoints.map((point) => `${point.x},${point.y}`).join(" ");
   const currentMapPoint = routePoints[routePoints.length - 1] || { x: 230, y: 100 };
+  const previousMapPoint = routePoints[routePoints.length - 2];
+  const headingDegrees = previousMapPoint
+    ? (Math.atan2(currentMapPoint.x - previousMapPoint.x, previousMapPoint.y - currentMapPoint.y) * 180) / Math.PI
+    : 0;
 
   const formatCoordinate = (value: number | undefined, positive: string, negative: string) => {
     if (value === undefined) return "--";
     return `${Math.abs(value).toFixed(4)}° ${value >= 0 ? positive : negative}`;
   };
 
-  const latitude = currentPoint?.latitude ?? deviceCoordinates?.latitude;
-  const longitude = currentPoint?.longitude ?? deviceCoordinates?.longitude;
-
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => setDeviceCoordinates({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      }),
-      () => undefined,
-      { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 },
-    );
-  }, []);
+  const latitude = currentPoint?.latitude;
+  const longitude = currentPoint?.longitude;
 
   useEffect(() => {
     if (latitude === undefined || longitude === undefined) return;
@@ -112,24 +103,7 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({ tracking }) 
 
       {/* Stylized Dark 3D Map Grid Container */}
       <div className="relative w-full h-48 sm:h-56 rounded-xl border border-slate-800 bg-slate-950 overflow-hidden shadow-inner">
-        {/* Background Grid Lines */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-40 group-hover:opacity-60 transition-opacity" />
-
-        {/* Pulsing Radar Sweep Effect */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-64 h-64 rounded-full border border-cyan-500/20 animate-spin relative" style={{ animationDuration: "8s" }}>
-            <div className="absolute top-1/2 left-1/2 w-1/2 h-0.5 bg-gradient-to-r from-cyan-400 to-transparent origin-left opacity-70" />
-          </div>
-        </div>
-
-        {/* Topographic Elevation Rings */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-30">
-          <div className="w-44 h-44 rounded-full border border-cyan-500/20 animate-pulse" style={{ animationDuration: "3s" }} />
-          <div className="w-28 h-28 rounded-full border border-slate-800" />
-          <div className="w-14 h-14 rounded-full border border-slate-800" />
-        </div>
-
-        {/* Glowing Cyan Vector Path SVG */}
+        {/* Relative GPS path rendered from the user's starting position. */}
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
           <defs>
             <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -169,21 +143,20 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({ tracking }) 
           </div>
         )}
 
-        {/* Center Glowing Pin & Pulse Ring (Simulates Active GPS Polling) */}
-        <div className="absolute top-[55%] left-[65%] transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+        {/* Current GPS position and movement heading. */}
+        <div
+          className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center z-10"
+          style={{ left: `${(currentMapPoint.x / 400) * 100}%`, top: `${(currentMapPoint.y / 200) * 100}%` }}
+        >
           <div
             className="relative flex items-center justify-center"
-            style={{
-              left: `${(currentMapPoint.x / 400) * 100}%`,
-              top: `${(currentMapPoint.y / 200) * 100}%`,
-            }}
           >
             {/* Multi-layer pulsating aura */}
             <div className="absolute w-14 h-14 rounded-full bg-cyan-400/30 animate-ping" style={{ animationDuration: "2s" }} />
             <div className="absolute w-10 h-10 rounded-full bg-cyan-400/50 animate-pulse" style={{ animationDuration: "1.5s" }} />
             
             <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_20px_#22d3ee]">
-              <Navigation className="w-4 h-4 text-cyan-400 transform rotate-45 animate-pulse" />
+              <Navigation className="w-4 h-4 text-cyan-400 animate-pulse" style={{ transform: `rotate(${headingDegrees}deg)` }} />
             </div>
           </div>
           <span className="mt-1.5 px-2 py-0.5 rounded bg-slate-900/95 border border-cyan-500/50 text-[9px] font-mono text-cyan-300 font-semibold shadow-lg whitespace-nowrap">
