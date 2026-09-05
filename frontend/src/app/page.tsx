@@ -63,6 +63,9 @@ export default function Home() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [vitals, setVitals] = useState<VitalMetrics>(initialVitals);
   const [gpsTracking, setGpsTracking] = useState<GpsTrackingState>(initialGpsTracking);
+  const [steps, setSteps] = useState(0);
+  const [isTrackingSteps, setIsTrackingSteps] = useState(false);
+  const [motionTrackingStatus, setMotionTrackingStatus] = useState<"unavailable" | "needs-permission" | "active">("unavailable");
   const [hwConfig, setHwConfig] = useState<HardwareConfig>(defaultHardwareConfig);
 
   const [activeTab, setActiveTab] = useState<"dashboard" | "history" | "alerts" | "profile">("dashboard");
@@ -90,6 +93,7 @@ export default function Home() {
   const fallSpikeAtRef = useRef<number | null>(null);
   const fallLowMotionSinceRef = useRef<number | null>(null);
   const fallAlertedRef = useRef(false);
+  const lastStepAtRef = useRef(0);
 
   // Initial local storage hydration
   useEffect(() => {
@@ -161,7 +165,7 @@ export default function Home() {
           return {
             path: [...previous.path, nextPoint].slice(-100),
             totalDistanceMeters: previous.totalDistanceMeters + validMovementMeters,
-            steps: Math.floor((previous.totalDistanceMeters + validMovementMeters) / 0.762),
+            steps: previous.steps,
           };
         });
       },
@@ -171,6 +175,58 @@ export default function Home() {
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, [isLoggedIn]);
+
+  const startMotionTracking = useCallback(async () => {
+    if (typeof window === "undefined" || !("DeviceMotionEvent" in window)) {
+      setMotionTrackingStatus("unavailable");
+      return;
+    }
+
+    const motionEvent = DeviceMotionEvent as typeof DeviceMotionEvent & {
+      requestPermission?: () => Promise<"granted" | "denied">;
+    };
+    if (motionEvent.requestPermission) {
+      try {
+        const permission = await motionEvent.requestPermission();
+        if (permission !== "granted") {
+          setMotionTrackingStatus("needs-permission");
+          return;
+        }
+      } catch {
+        setMotionTrackingStatus("needs-permission");
+        return;
+      }
+    }
+
+    setMotionTrackingStatus("active");
+    setIsTrackingSteps(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn || !isTrackingSteps || typeof window === "undefined" || !("DeviceMotionEvent" in window)) return;
+
+    const motionEvent = DeviceMotionEvent as typeof DeviceMotionEvent & {
+      requestPermission?: () => Promise<"granted" | "denied">;
+    };
+    if (motionEvent.requestPermission && motionTrackingStatus !== "active") return;
+
+    const handleMotion = (event: DeviceMotionEvent) => {
+      const x = event.accelerationIncludingGravity?.x ?? event.acceleration?.x;
+      const y = event.accelerationIncludingGravity?.y ?? event.acceleration?.y;
+      const z = event.accelerationIncludingGravity?.z ?? event.acceleration?.z;
+      if (x === null || x === undefined || y === null || y === undefined || z === null || z === undefined) return;
+
+      const acceleration = Math.sqrt(x * x + y * y + z * z);
+      const now = Date.now();
+      if (Math.abs(acceleration - 9.8) > 2.0 && now - lastStepAtRef.current >= 300) {
+        lastStepAtRef.current = now;
+        setSteps((currentSteps) => currentSteps + 1);
+      }
+    };
+
+    window.addEventListener("devicemotion", handleMotion);
+    return () => window.removeEventListener("devicemotion", handleMotion);
+  }, [isLoggedIn, isTrackingSteps, motionTrackingStatus]);
 
   useEffect(() => {
     const storageKey = "startTime";
@@ -576,8 +632,9 @@ export default function Home() {
               spo2={vitals.spo2}
               temp={vitals.temp}
               hrv={vitals.hrv}
-              steps={gpsTracking.steps}
-              calories={gpsTracking.steps * 0.04}
+              steps={steps}
+              onStartMotionTracking={startMotionTracking}
+              isTrackingSteps={isTrackingSteps}
               fingerPresent={vitals.fingerPresent}
               hasWarning={hasWarning}
               warningMessage={activeWarnings[0]?.message}

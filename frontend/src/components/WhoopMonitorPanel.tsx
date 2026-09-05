@@ -18,7 +18,6 @@ interface WhoopMonitorPanelProps {
   spo2: string | number;
   temp: string | number;
   steps: number;
-  calories: number;
   fingerPresent: number;
   respRate: number | string;
   stress: string;
@@ -54,7 +53,6 @@ export const WhoopMonitorPanel: React.FC<WhoopMonitorPanelProps> = ({
   spo2,
   temp,
   steps,
-  calories,
   fingerPresent,
   respRate,
   stress,
@@ -127,8 +125,8 @@ export const WhoopMonitorPanel: React.FC<WhoopMonitorPanelProps> = ({
             <Flame className="h-4 w-4 text-orange-300" />
             <span className="text-xs font-semibold">Activity load</span>
           </div>
-          <p className="mt-4 text-lg font-bold text-white">{steps > 0 ? `${steps.toLocaleString()} steps` : "No GPS steps yet"}</p>
-          <p className="mt-1 text-[10px] text-slate-500">{calories.toLocaleString()} kcal estimated today</p>
+          <p className="mt-4 text-lg font-bold text-white">{steps.toLocaleString()} steps walked today</p>
+          <p className="mt-1 text-[10px] text-slate-500">{Math.floor(steps * 0.04)} kcal estimated today</p>
         </div>
       </div>
     </section>

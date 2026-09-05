@@ -11,6 +11,8 @@ interface MetricsGridProps {
   temp: string | number;
   fingerPresent: number;
   steps: number;
+  onStartMotionTracking?: () => void;
+  isTrackingSteps?: boolean;
   onOpenMetricDetail?: (data: MetricDetailData) => void;
 }
 
@@ -20,6 +22,8 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
   temp,
   fingerPresent,
   steps,
+  onStartMotionTracking,
+  isTrackingSteps = false,
   onOpenMetricDetail,
 }) => {
   const isDisconnected = fingerPresent === 0;
@@ -197,16 +201,25 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-[10px] text-slate-400 font-medium">
               <span>Target: 10,000</span>
-              <span className="text-cyan-400 font-semibold">{Math.round((steps / 10000) * 100)}%</span>
+              <span className="text-cyan-400 font-semibold">{Math.min(100, Math.floor((steps / 10000) * 100))}%</span>
             </div>
             <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
               <div
                 className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300 rounded-full transition-all duration-700 relative shadow-[0_0_10px_#22d3ee] activity-shimmer"
-                style={{ width: `${Math.min(100, Math.round((steps / 10000) * 100))}%` }}
+                style={{ width: `${Math.min(100, Math.floor((steps / 10000) * 100))}%` }}
               >
                 <div className="absolute right-0 top-0 bottom-0 w-2 bg-white rounded-full animate-pulse" />
               </div>
             </div>
+            {!isTrackingSteps && (
+              <button
+                type="button"
+                onClick={onStartMotionTracking}
+                className="text-[10px] text-cyan-400 underline underline-offset-2"
+              >
+                Enable motion tracking
+              </button>
+            )}
           </div>
         }
       />

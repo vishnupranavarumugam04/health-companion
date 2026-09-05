@@ -14,7 +14,8 @@ interface DashboardViewProps {
   temp: string | number;
   hrv: string | number;
   steps: number;
-  calories: number;
+  onStartMotionTracking: () => void;
+  isTrackingSteps: boolean;
   fingerPresent: number;
   hasWarning: boolean;
   warningMessage?: string | null;
@@ -30,7 +31,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   temp,
   hrv,
   steps,
-  calories,
+  onStartMotionTracking,
+  isTrackingSteps,
   fingerPresent,
   hasWarning,
   warningMessage,
@@ -163,6 +165,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           temp={temp}
           fingerPresent={fingerPresent}
           steps={steps}
+          onStartMotionTracking={onStartMotionTracking}
+          isTrackingSteps={isTrackingSteps}
           onOpenMetricDetail={onOpenMetricDetail}
         />
       </div>
@@ -173,7 +177,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         spo2={spo2}
         temp={temp}
         steps={steps}
-        calories={calories}
         fingerPresent={fingerPresent}
         respRate={respRate}
         stress={stress}
