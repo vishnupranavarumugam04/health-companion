@@ -7,6 +7,7 @@ import { WhoopMonitorPanel } from "./WhoopMonitorPanel";
 import { SamsungGalaxyRings } from "./SamsungGalaxyRings";
 import { MetricDetailData } from "./MetricDetailModal";
 import { getDecryptedTelemetryRecords } from "@/utils/telemetryBuffer";
+import { useHealthNotifications } from "../hooks/useHealthNotifications";
 
 type GpsStatus =
   | { state: "searching" }
@@ -78,6 +79,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [activeTab, setActiveTab] = useState<'daily' | 'exercise'>('daily');
   const lastGpsPointRef = useRef<{ latitude: number; longitude: number } | null>(null);
   const totalDistanceRef = useRef(0);
+
+  // Initialize notifications
+  useHealthNotifications(hr, gpsSteps, hasWarning, warningMessage);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
