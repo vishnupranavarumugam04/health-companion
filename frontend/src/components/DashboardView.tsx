@@ -87,9 +87,60 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [gpsSteps, setGpsSteps] = useState(0);
   const [gpsDistance, setGpsDistance] = useState(0);
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>({ state: "searching" });
+  const [gpsActivityStatus, setGpsActivityStatus] = useState<"REST" | "ACTIVE" | "HIGH">("REST");
   const [activeTab, setActiveTab] = useState<'daily' | 'exercise'>('daily');
   const lastGpsPointRef = useRef<{ latitude: number; longitude: number } | null>(null);
   const totalDistanceRef = useRef(0);
+  const currentStepsRef = useRef(0);
+
+  // Sync ref for interval
+  useEffect(() => {
+    currentStepsRef.current = gpsSteps;
+  }, [gpsSteps]);
+
+  // GPS step-rate calculation interval
+  useEffect(() => {
+    const history: { steps: number; timestamp: number }[] = [];
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const current = currentStepsRef.current;
+      
+      history.push({ steps: current, timestamp: now });
+      
+      const cutoff = now - 15000; // 15-second rolling window
+      while (history.length > 0 && history[0].timestamp < cutoff) {
+        history.shift();
+      }
+      
+      if (history.length > 1) {
+        const oldest = history[0];
+        const newest = history[history.length - 1];
+        const elapsedMs = newest.timestamp - oldest.timestamp;
+        
+        if (elapsedMs > 2000) {
+          const stepDiff = newest.steps - oldest.steps;
+          if (stepDiff < 0) {
+             setGpsActivityStatus("REST");
+             history.length = 0; // Clear history on step reset
+          } else {
+             const elapsedMinutes = elapsedMs / 60000;
+             const stepsPerMinute = stepDiff / elapsedMinutes;
+             
+             if (stepsPerMinute >= 100) {
+               setGpsActivityStatus("HIGH");
+             } else if (stepsPerMinute >= 5) {
+               setGpsActivityStatus("ACTIVE");
+             } else {
+               setGpsActivityStatus("REST");
+             }
+          }
+        }
+      }
+    }, 2000); // Check every 2 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Initialize notifications
   useHealthNotifications(hr, gpsSteps, hasWarning, warningMessage);
@@ -310,7 +361,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             temp={temp}
             fingerPresent={fingerPresent}
             steps={gpsSteps}
-            activityStatus={hardwareActivity || "RESTING"}
+            activityStatus={gpsActivityStatus}
             gpsStatus={gpsStatus}
             onOpenMetricDetail={onOpenMetricDetail}
           />
