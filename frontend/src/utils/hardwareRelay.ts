@@ -25,6 +25,11 @@ interface TelemetryPayload {
   connected?: boolean;
   isHardwareOnline?: boolean;
   source?: string;
+  activity?: string;
+  fall?: boolean;
+  environmentalTemperature?: string | number;
+  humidity?: string | number;
+  airQuality?: string | number;
 }
 
 export const getStoredHardwareConfig = (): HardwareConfig => {
@@ -124,6 +129,11 @@ export function parseHardwarePayload(data: TelemetryPayload | string, sourceLabe
     accelX: payload.x !== undefined ? parseFloat(String(payload.x)) : 0,
     accelY: payload.y !== undefined ? parseFloat(String(payload.y)) : 0,
     accelZ: payload.z !== undefined ? parseFloat(String(payload.z)) : 0,
+    activity: payload.activity || "RESTING",
+    fall: payload.fall === true,
+    environmentalTemperature: payload.environmentalTemperature !== undefined ? parseFloat(String(payload.environmentalTemperature)) : undefined,
+    humidity: payload.humidity !== undefined ? parseFloat(String(payload.humidity)) : undefined,
+    airQuality: payload.airQuality !== undefined ? parseFloat(String(payload.airQuality)) : undefined,
     timestamp: new Date().toLocaleTimeString(),
     dataSource: isOnline ? sourceLabel : "Not Connected",
   };

@@ -46,6 +46,8 @@ interface DashboardViewProps {
   envTemp?: string | number;
   envHumidity?: string | number;
   airQuality?: string | number;
+  hardwareSteps?: number;
+  hardwareActivity?: string;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -63,6 +65,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   envTemp = "--",
   envHumidity = "--",
   airQuality = "--",
+  hardwareSteps,
+  hardwareActivity,
 }) => {
   const [derivedHrv, respRate, stress] = useMemo((): [number | string, number | string, string] => {
     if (fingerPresent === 0 || hr === "--") return ["--", "--", "--"];
@@ -306,6 +310,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             temp={temp}
             fingerPresent={fingerPresent}
             steps={gpsSteps}
+            activityStatus={hardwareActivity || "RESTING"}
             gpsStatus={gpsStatus}
             onOpenMetricDetail={onOpenMetricDetail}
           />

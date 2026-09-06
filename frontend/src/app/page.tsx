@@ -32,6 +32,8 @@ const initialVitals: VitalMetrics = {
   steps: 0,
   distanceKm: 0,
   calories: 0,
+  activity: "RESTING",
+  fall: false,
   dataSource: "Not Connected",
 };
 
@@ -208,10 +210,10 @@ export default function Home() {
     if (data.length >= 4) {
       const finger = data[3] === "1" ? 1 : 0;
       
-      // The new format is HR,SpO2,BodyTemp,FingerStatus,EnvTemp,EnvHumidity,AirQuality
-      // motionLevel is no longer in the payload, defaulting to 0 to prevent false fall alerts
-      const motionLevel = 0;
-      const motionTimestamp = Date.now();
+      // The new format is HR,SpO2,BodyTemp,FingerStatus,EnvTemp,EnvHumidity,AirQuality,Activity,Fall,Steps
+      let hardwareActivity = "RESTING";
+      let hardwareFall = false;
+      let hardwareSteps = 0;
 
       if (data.length >= 7) {
         setEnvVitals({
@@ -221,25 +223,19 @@ export default function Home() {
         });
       }
 
-      if (motionLevel > 15.0) {
-        fallSpikeAtRef.current = motionTimestamp;
-        fallLowMotionSinceRef.current = null;
-        fallAlertedRef.current = false;
-      } else if (fallSpikeAtRef.current !== null) {
-        if (motionLevel < 0.5) {
-          fallLowMotionSinceRef.current ??= motionTimestamp;
-          if (
-            !fallAlertedRef.current &&
-            fallLowMotionSinceRef.current !== null &&
-            motionTimestamp - fallLowMotionSinceRef.current >= 5000
-          ) {
-            fallAlertedRef.current = true;
-            setFallDetected(true);
-          }
-        } else {
-          fallLowMotionSinceRef.current = null;
-        }
+      if (data.length >= 10) {
+        hardwareActivity = data[7];
+        hardwareFall = data[8] === "1" || data[8] === "true";
+        hardwareSteps = parseInt(data[9], 10) || 0;
       }
+
+      if (hardwareFall && !fallAlertedRef.current) {
+        fallAlertedRef.current = true;
+        setFallDetected(true);
+      } else if (!hardwareFall) {
+        fallAlertedRef.current = false;
+      }
+
       if (finger === 1) {
         const rawHr = parseFloat(data[0]);
         const rawSpo2 = parseFloat(data[1]);
@@ -251,9 +247,11 @@ export default function Home() {
           spo2: !isNaN(rawSpo2) && rawSpo2 > 0 ? rawSpo2 : "--",
           temp: !isNaN(rawTemp) && rawTemp > 0 ? rawTemp : "--",
           hrv: !isNaN(rawHr) && rawHr > 0 ? Math.round(70 - (rawHr - 70) * 0.4) : "--",
-          motionLevel,
-          steps: motionLevel > 2.0 ? prev.steps + 1 : prev.steps,
-          calories: motionLevel > 2.0 ? Math.round((prev.steps + 1) * 0.04) : prev.calories,
+          motionLevel: 0,
+          steps: hardwareSteps > 0 ? hardwareSteps : prev.steps,
+          activity: hardwareActivity,
+          fall: hardwareFall,
+          calories: Math.round((hardwareSteps > 0 ? hardwareSteps : prev.steps) * 0.04),
           fingerPresent: 1,
           dataSource: "HiveMQ WebSocket Stream",
         }));
@@ -265,6 +263,8 @@ export default function Home() {
           spo2: "--",
           temp: !isNaN(rawTemp) && rawTemp > 0 ? rawTemp : "--",
           motionLevel: 0,
+          activity: hardwareActivity,
+          fall: hardwareFall,
           fingerPresent: 0,
           dataSource: "HiveMQ WebSocket Stream",
         }));
@@ -547,6 +547,8 @@ export default function Home() {
               envTemp={envVitals.temp}
               envHumidity={envVitals.humidity}
               airQuality={envVitals.airQuality}
+              hardwareSteps={vitals.steps}
+              hardwareActivity={vitals.activity}
             />
           )}
 

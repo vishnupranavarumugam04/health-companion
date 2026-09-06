@@ -33,6 +33,11 @@ export interface VitalMetrics {
   accelX?: number;
   accelY?: number;
   accelZ?: number;
+  activity?: string;
+  fall?: boolean;
+  environmentalTemperature?: number;
+  humidity?: number;
+  airQuality?: number;
   timestamp?: string;
   dataSource?: string;
 }

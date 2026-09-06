@@ -7,6 +7,11 @@ let directPushData: {
   temp: number;
   finger: number;
   steps: number;
+  activity: string;
+  fall: boolean;
+  environmentalTemperature: number;
+  humidity: number;
+  airQuality: number;
   updatedAt: number;
   source: string;
 } | null = null;
@@ -14,12 +19,16 @@ let directPushData: {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  // 1. If ESP32 pushes via direct HTTP GET parameters
   const hr = searchParams.get("hr");
   const spo2 = searchParams.get("spo2");
   const temp = searchParams.get("temp");
   const finger = searchParams.get("finger");
   const steps = searchParams.get("steps");
+  const activity = searchParams.get("activity") || "RESTING";
+  const fall = searchParams.get("fall") === "1" || searchParams.get("fall") === "true";
+  const envTemp = searchParams.get("environmentalTemperature");
+  const humidity = searchParams.get("humidity");
+  const airQuality = searchParams.get("airQuality");
 
   if (hr !== null || spo2 !== null || temp !== null || finger !== null) {
     directPushData = {
@@ -27,7 +36,12 @@ export async function GET(request: NextRequest) {
       spo2: spo2 !== null ? parseFloat(spo2) : 98,
       temp: temp !== null ? parseFloat(temp) : 36.6,
       finger: finger !== null ? parseInt(finger, 10) : 1,
-      steps: steps !== null ? parseInt(steps, 10) : 1420,
+      steps: steps !== null ? parseInt(steps, 10) : 0, // Removed hard-coded 1420
+      activity: activity,
+      fall: fall,
+      environmentalTemperature: envTemp !== null ? parseFloat(envTemp) : 25.0,
+      humidity: humidity !== null ? parseFloat(humidity) : 50.0,
+      airQuality: airQuality !== null ? parseFloat(airQuality) : 1000,
       updatedAt: Date.now(),
       source: "ESP32 Direct Telemetry",
     };
@@ -44,6 +58,11 @@ export async function GET(request: NextRequest) {
         temp: directPushData.temp,
         finger: directPushData.finger,
         steps: directPushData.steps,
+        activity: directPushData.activity,
+        fall: directPushData.fall,
+        environmentalTemperature: directPushData.environmentalTemperature,
+        humidity: directPushData.humidity,
+        airQuality: directPushData.airQuality,
         updatedAt: directPushData.updatedAt,
         source: directPushData.source,
       },
@@ -84,7 +103,12 @@ export async function GET(request: NextRequest) {
               spo2: rawSpo2 !== undefined ? parseFloat(rawSpo2) : "--",
               temp: rawTemp !== undefined ? parseFloat(rawTemp) : "--",
               finger: rawFinger !== undefined ? parseInt(rawFinger, 10) : 1,
-              steps: 1420,
+              steps: content.steps !== undefined ? parseInt(content.steps, 10) : 0, // Removed hard-coded 1420
+              activity: content.activity || "RESTING",
+              fall: content.fall === "1" || content.fall === true,
+              environmentalTemperature: content.environmentalTemperature !== undefined ? parseFloat(content.environmentalTemperature) : "--",
+              humidity: content.humidity !== undefined ? parseFloat(content.humidity) : "--",
+              airQuality: content.airQuality !== undefined ? parseFloat(content.airQuality) : "--",
               updatedAt: Date.now(),
               source: "Cirkit Dweet Live",
             },
@@ -112,6 +136,11 @@ export async function GET(request: NextRequest) {
       temp: "--",
       finger: 0,
       steps: 0,
+      activity: "RESTING",
+      fall: false,
+      environmentalTemperature: "--",
+      humidity: "--",
+      airQuality: "--",
       updatedAt: null,
       source: "Disconnected",
     },
@@ -132,7 +161,12 @@ export async function POST(request: NextRequest) {
       spo2: body.spo2 !== undefined ? parseFloat(body.spo2) : 98,
       temp: body.temp !== undefined ? parseFloat(body.temp) : 36.6,
       finger: body.finger !== undefined ? parseInt(body.finger, 10) : 1,
-      steps: body.steps !== undefined ? parseInt(body.steps, 10) : 1420,
+      steps: body.steps !== undefined ? parseInt(body.steps, 10) : 0, // Removed hardcoded 1420
+      activity: body.activity || "RESTING",
+      fall: body.fall === "1" || body.fall === true,
+      environmentalTemperature: body.environmentalTemperature !== undefined ? parseFloat(body.environmentalTemperature) : 25.0,
+      humidity: body.humidity !== undefined ? parseFloat(body.humidity) : 50.0,
+      airQuality: body.airQuality !== undefined ? parseFloat(body.airQuality) : 1000,
       updatedAt: Date.now(),
       source: "ESP32 Ring Live Stream",
     };

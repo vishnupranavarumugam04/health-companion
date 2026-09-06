@@ -11,6 +11,7 @@ interface MetricsGridProps {
   temp: string | number;
   fingerPresent: number;
   steps: number;
+  activityStatus?: string;
   gpsStatus?:
     | { state: "searching" }
     | { state: "active"; accuracy: number; distance: number }
@@ -24,6 +25,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
   temp,
   fingerPresent,
   steps,
+  activityStatus,
   gpsStatus,
   onOpenMetricDetail,
 }) => {
@@ -212,6 +214,19 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
                 <div className="absolute right-0 top-0 bottom-0 w-2 bg-white rounded-full animate-pulse" />
               </div>
             </div>
+            
+            <div className="flex justify-between items-center text-[10px] font-medium pt-1">
+              <span className="text-slate-400">Current Status:</span>
+              <span className={`font-semibold ${
+                activityStatus === "HIGH" ? "text-rose-400" :
+                activityStatus === "ACTIVE" ? "text-cyan-400" :
+                activityStatus === "LIGHT" ? "text-amber-400" :
+                "text-slate-300"
+              }`}>
+                {activityStatus || "UNKNOWN"} {activityStatus === "RESTING" && "(Sleep/Rest)"}
+              </span>
+            </div>
+
             {gpsStatus?.state === "searching" && <span className="text-[10px] text-amber-500">GPS: Searching (Waiting for fix)</span>}
             {gpsStatus?.state === "active" && (
               <span className="text-[10px] text-cyan-500">GPS: Active (Acc: ±{gpsStatus.accuracy.toFixed(1)}m | Dist: {gpsStatus.distance.toFixed(1)}m)</span>
