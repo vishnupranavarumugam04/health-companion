@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HeaderSection } from "./HeaderSection";
 import { MetricsGrid } from "./MetricsGrid";
 import { WhoopMonitorPanel } from "./WhoopMonitorPanel";
+import { SamsungGalaxyRings } from "./SamsungGalaxyRings";
 import { MetricDetailData } from "./MetricDetailModal";
 import { getDecryptedTelemetryRecords } from "@/utils/telemetryBuffer";
 
@@ -74,6 +75,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [gpsSteps, setGpsSteps] = useState(0);
   const [gpsDistance, setGpsDistance] = useState(0);
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>({ state: "searching" });
+  const [activeTab, setActiveTab] = useState<'daily' | 'exercise'>('daily');
   const lastGpsPointRef = useRef<{ latitude: number; longitude: number } | null>(null);
   const totalDistanceRef = useRef(0);
 
@@ -218,32 +220,67 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         mqttConnected={mqttConnected}
       />
 
-      {/* Metrics Grid (2x2 Reusable Cards with click actions) */}
-      <div className="relative">
-        <MetricsGrid
-          hr={hr}
-          spo2={spo2}
-          temp={temp}
-          fingerPresent={fingerPresent}
-          steps={gpsSteps}
-          gpsStatus={gpsStatus}
-          onOpenMetricDetail={onOpenMetricDetail}
-        />
+      {/* Tabs */}
+      <div className="flex bg-slate-900/50 rounded-xl p-1 shadow-inner border border-slate-800">
+        <button
+          onClick={() => setActiveTab('daily')}
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+            activeTab === 'daily'
+              ? 'bg-gradient-to-r from-cyan-600 to-cyan-400 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Daily Routine
+        </button>
+        <button
+          onClick={() => setActiveTab('exercise')}
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+            activeTab === 'exercise'
+              ? 'bg-gradient-to-r from-cyan-600 to-cyan-400 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Exercise
+        </button>
       </div>
 
-      <WhoopMonitorPanel
-        hr={hr}
-        hrv={derivedHrv}
-        spo2={spo2}
-        temp={temp}
-        steps={gpsSteps}
-        fingerPresent={fingerPresent}
-        respRate={respRate}
-        stress={stress}
-        strain={strain}
-        recovery={recovery}
-        sleep={sleep}
-      />
+      {activeTab === 'daily' && (
+        <div className="space-y-4 animate-fade-in">
+          <SamsungGalaxyRings
+            sleepText={sleep}
+            stepsText={gpsSteps}
+            hrText={hr === "--" ? "--" : `${hr} bpm`}
+          />
+
+          <WhoopMonitorPanel
+            hr={hr}
+            hrv={derivedHrv}
+            spo2={spo2}
+            temp={temp}
+            steps={gpsSteps}
+            fingerPresent={fingerPresent}
+            respRate={respRate}
+            stress={stress}
+            strain={strain}
+            recovery={recovery}
+            sleep={sleep}
+          />
+        </div>
+      )}
+
+      {activeTab === 'exercise' && (
+        <div className="relative animate-fade-in">
+          <MetricsGrid
+            hr={hr}
+            spo2={spo2}
+            temp={temp}
+            fingerPresent={fingerPresent}
+            steps={gpsSteps}
+            gpsStatus={gpsStatus}
+            onOpenMetricDetail={onOpenMetricDetail}
+          />
+        </div>
+      )}
 
     </div>
   );
