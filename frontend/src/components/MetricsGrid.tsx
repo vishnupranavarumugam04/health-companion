@@ -11,8 +11,10 @@ interface MetricsGridProps {
   temp: string | number;
   fingerPresent: number;
   steps: number;
-  onStartMotionTracking?: () => void;
-  isTrackingSteps?: boolean;
+  gpsStatus?:
+    | { state: "searching" }
+    | { state: "active"; accuracy: number; distance: number }
+    | { state: "error"; message: string };
   onOpenMetricDetail?: (data: MetricDetailData) => void;
 }
 
@@ -22,8 +24,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
   temp,
   fingerPresent,
   steps,
-  onStartMotionTracking,
-  isTrackingSteps = false,
+  gpsStatus,
   onOpenMetricDetail,
 }) => {
   const isDisconnected = fingerPresent === 0;
@@ -211,15 +212,11 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
                 <div className="absolute right-0 top-0 bottom-0 w-2 bg-white rounded-full animate-pulse" />
               </div>
             </div>
-            {!isTrackingSteps && (
-              <button
-                type="button"
-                onClick={onStartMotionTracking}
-                className="text-[10px] text-cyan-400 underline underline-offset-2"
-              >
-                Enable motion tracking
-              </button>
+            {gpsStatus?.state === "searching" && <span className="text-[10px] text-amber-500">GPS: Searching (Waiting for fix)</span>}
+            {gpsStatus?.state === "active" && (
+              <span className="text-[10px] text-cyan-500">GPS: Active (Acc: ±{gpsStatus.accuracy.toFixed(1)}m | Dist: {gpsStatus.distance.toFixed(1)}m)</span>
             )}
+            {gpsStatus?.state === "error" && <span className="text-[10px] text-red-500">GPS Error: {gpsStatus.message}</span>}
           </div>
         }
       />

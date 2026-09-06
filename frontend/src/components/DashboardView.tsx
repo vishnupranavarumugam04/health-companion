@@ -1,11 +1,32 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HeaderSection } from "./HeaderSection";
 import { MetricsGrid } from "./MetricsGrid";
 import { WhoopMonitorPanel } from "./WhoopMonitorPanel";
 import { MetricDetailData } from "./MetricDetailModal";
 import { getDecryptedTelemetryRecords } from "@/utils/telemetryBuffer";
+
+type GpsStatus =
+  | { state: "searching" }
+  | { state: "active"; accuracy: number; distance: number }
+  | { state: "error"; message: string };
+
+const gpsDistanceBetween = (
+  first: { latitude: number; longitude: number },
+  second: { latitude: number; longitude: number },
+) => {
+  const earthRadiusMeters = 6371000;
+  const latitudeDelta = ((second.latitude - first.latitude) * Math.PI) / 180;
+  const longitudeDelta = ((second.longitude - first.longitude) * Math.PI) / 180;
+  const firstLatitude = (first.latitude * Math.PI) / 180;
+  const secondLatitude = (second.latitude * Math.PI) / 180;
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(firstLatitude) * Math.cos(secondLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+
+  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+};
 
 interface DashboardViewProps {
   userName: string;
@@ -13,9 +34,6 @@ interface DashboardViewProps {
   spo2: string | number;
   temp: string | number;
   hrv: string | number;
-  steps: number;
-  onStartMotionTracking: () => void;
-  isTrackingSteps: boolean;
   fingerPresent: number;
   hasWarning: boolean;
   warningMessage?: string | null;
@@ -30,9 +48,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   spo2,
   temp,
   hrv,
-  steps,
-  onStartMotionTracking,
-  isTrackingSteps,
   fingerPresent,
   hasWarning,
   warningMessage,
@@ -56,6 +71,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [strain, setStrain] = useState(4.0);
   const [recovery, setRecovery] = useState<number | string>("--");
   const [sleep, setSleep] = useState("--");
+  const [gpsSteps, setGpsSteps] = useState(0);
+  const [gpsDistance, setGpsDistance] = useState(0);
+  const [gpsStatus, setGpsStatus] = useState<GpsStatus>({ state: "searching" });
+  const lastGpsPointRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const totalDistanceRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGpsStatus({ state: "error", message: "Geolocation unavailable" });
+      return;
+    }
+
+    const storedDistance = Number(window.localStorage.getItem("health-companion-total-distance"));
+    if (Number.isFinite(storedDistance) && storedDistance > 0) {
+      totalDistanceRef.current = storedDistance;
+      setGpsDistance(storedDistance);
+      setGpsSteps(Math.floor(storedDistance / 0.70));
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        if (position.coords.accuracy >= 45) return;
+
+        const currentPoint = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        const previousPoint = lastGpsPointRef.current;
+        const distanceDelta = previousPoint ? gpsDistanceBetween(previousPoint, currentPoint) : 0;
+        const acceptedDelta = distanceDelta >= 1 ? distanceDelta : 0;
+        lastGpsPointRef.current = currentPoint;
+
+        totalDistanceRef.current += acceptedDelta;
+        const totalDistanceMeters = totalDistanceRef.current;
+
+        window.localStorage.setItem("health-companion-total-distance", String(totalDistanceMeters));
+        setGpsDistance(totalDistanceMeters);
+        setGpsSteps(Math.floor(totalDistanceMeters / 0.70));
+        setGpsStatus({ state: "active", accuracy: position.coords.accuracy, distance: totalDistanceMeters });
+      },
+      (error) => setGpsStatus({ state: "error", message: error.message }),
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -164,9 +225,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           spo2={spo2}
           temp={temp}
           fingerPresent={fingerPresent}
-          steps={steps}
-          onStartMotionTracking={onStartMotionTracking}
-          isTrackingSteps={isTrackingSteps}
+          steps={gpsSteps}
+          gpsStatus={gpsStatus}
           onOpenMetricDetail={onOpenMetricDetail}
         />
       </div>
@@ -176,7 +236,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         hrv={derivedHrv}
         spo2={spo2}
         temp={temp}
-        steps={steps}
+        steps={gpsSteps}
         fingerPresent={fingerPresent}
         respRate={respRate}
         stress={stress}

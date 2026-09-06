@@ -41,31 +41,12 @@ const initialGpsTracking: GpsTrackingState = {
   steps: 0,
 };
 
-const distanceBetweenPoints = (
-  first: Pick<GeolocationCoordinates, "latitude" | "longitude">,
-  second: Pick<GeolocationCoordinates, "latitude" | "longitude">,
-) => {
-  const earthRadiusMeters = 6371000;
-  const latitudeDelta = ((second.latitude - first.latitude) * Math.PI) / 180;
-  const longitudeDelta = ((second.longitude - first.longitude) * Math.PI) / 180;
-  const latitudeOne = (first.latitude * Math.PI) / 180;
-  const latitudeTwo = (second.latitude * Math.PI) / 180;
-  const haversine =
-    Math.sin(latitudeDelta / 2) ** 2 +
-    Math.cos(latitudeOne) * Math.cos(latitudeTwo) * Math.sin(longitudeDelta / 2) ** 2;
-
-  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
-};
-
 export default function Home() {
   const [user, setUser] = useState<UserProfile>(unauthenticatedProfile);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [vitals, setVitals] = useState<VitalMetrics>(initialVitals);
   const [gpsTracking, setGpsTracking] = useState<GpsTrackingState>(initialGpsTracking);
-  const [steps, setSteps] = useState(0);
-  const [isTrackingSteps, setIsTrackingSteps] = useState(false);
-  const [motionTrackingStatus, setMotionTrackingStatus] = useState<"unavailable" | "needs-permission" | "active">("unavailable");
   const [hwConfig, setHwConfig] = useState<HardwareConfig>(defaultHardwareConfig);
 
   const [activeTab, setActiveTab] = useState<"dashboard" | "history" | "alerts" | "profile">("dashboard");
@@ -93,7 +74,6 @@ export default function Home() {
   const fallSpikeAtRef = useRef<number | null>(null);
   const fallLowMotionSinceRef = useRef<number | null>(null);
   const fallAlertedRef = useRef(false);
-  const lastStepAtRef = useRef(0);
 
   // Initial local storage hydration
   useEffect(() => {
@@ -136,97 +116,6 @@ export default function Home() {
       }
     });
   }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn || typeof navigator === "undefined" || !navigator.geolocation) return;
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        if (position.coords.accuracy > 15) return;
-
-        setGpsTracking((previous) => {
-          const lastPoint = previous.path[previous.path.length - 1];
-          const movementMeters = lastPoint
-            ? distanceBetweenPoints(
-              {
-                latitude: lastPoint.latitude,
-                longitude: lastPoint.longitude,
-              },
-              position.coords,
-            )
-            : 0;
-          const validMovementMeters = movementMeters > 1.5 ? movementMeters : 0;
-          const nextPoint = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            timestamp: position.timestamp,
-          };
-
-          return {
-            path: [...previous.path, nextPoint].slice(-100),
-            totalDistanceMeters: previous.totalDistanceMeters + validMovementMeters,
-            steps: previous.steps,
-          };
-        });
-      },
-      () => undefined,
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 },
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [isLoggedIn]);
-
-  const startMotionTracking = useCallback(async () => {
-    if (typeof window === "undefined" || !("DeviceMotionEvent" in window)) {
-      setMotionTrackingStatus("unavailable");
-      return;
-    }
-
-    const motionEvent = DeviceMotionEvent as typeof DeviceMotionEvent & {
-      requestPermission?: () => Promise<"granted" | "denied">;
-    };
-    if (motionEvent.requestPermission) {
-      try {
-        const permission = await motionEvent.requestPermission();
-        if (permission !== "granted") {
-          setMotionTrackingStatus("needs-permission");
-          return;
-        }
-      } catch {
-        setMotionTrackingStatus("needs-permission");
-        return;
-      }
-    }
-
-    setMotionTrackingStatus("active");
-    setIsTrackingSteps(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn || !isTrackingSteps || typeof window === "undefined" || !("DeviceMotionEvent" in window)) return;
-
-    const motionEvent = DeviceMotionEvent as typeof DeviceMotionEvent & {
-      requestPermission?: () => Promise<"granted" | "denied">;
-    };
-    if (motionEvent.requestPermission && motionTrackingStatus !== "active") return;
-
-    const handleMotion = (event: DeviceMotionEvent) => {
-      const x = event.accelerationIncludingGravity?.x ?? event.acceleration?.x;
-      const y = event.accelerationIncludingGravity?.y ?? event.acceleration?.y;
-      const z = event.accelerationIncludingGravity?.z ?? event.acceleration?.z;
-      if (x === null || x === undefined || y === null || y === undefined || z === null || z === undefined) return;
-
-      const acceleration = Math.sqrt(x * x + y * y + z * z);
-      const now = Date.now();
-      if (Math.abs(acceleration - 9.8) > 2.0 && now - lastStepAtRef.current >= 300) {
-        lastStepAtRef.current = now;
-        setSteps((currentSteps) => currentSteps + 1);
-      }
-    };
-
-    window.addEventListener("devicemotion", handleMotion);
-    return () => window.removeEventListener("devicemotion", handleMotion);
-  }, [isLoggedIn, isTrackingSteps, motionTrackingStatus]);
 
   useEffect(() => {
     const storageKey = "startTime";
@@ -632,9 +521,6 @@ export default function Home() {
               spo2={vitals.spo2}
               temp={vitals.temp}
               hrv={vitals.hrv}
-              steps={steps}
-              onStartMotionTracking={startMotionTracking}
-              isTrackingSteps={isTrackingSteps}
               fingerPresent={vitals.fingerPresent}
               hasWarning={hasWarning}
               warningMessage={activeWarnings[0]?.message}
