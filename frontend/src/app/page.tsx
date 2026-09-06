@@ -49,6 +49,12 @@ export default function Home() {
   const [gpsTracking, setGpsTracking] = useState<GpsTrackingState>(initialGpsTracking);
   const [hwConfig, setHwConfig] = useState<HardwareConfig>(defaultHardwareConfig);
 
+  const [envVitals, setEnvVitals] = useState({
+    temp: "--" as string | number,
+    humidity: "--" as string | number,
+    airQuality: "--" as string | number,
+  });
+
   const [activeTab, setActiveTab] = useState<"dashboard" | "history" | "alerts" | "profile">("dashboard");
   const [theme, setTheme] = useState<"dark" | "light">("light");
   
@@ -201,8 +207,19 @@ export default function Home() {
     
     if (data.length >= 4) {
       const finger = data[3] === "1" ? 1 : 0;
-      const motionLevel = data[4] !== undefined ? parseFloat(data[4]) : 0;
+      
+      // The new format is HR,SpO2,BodyTemp,FingerStatus,EnvTemp,EnvHumidity,AirQuality
+      // motionLevel is no longer in the payload, defaulting to 0 to prevent false fall alerts
+      const motionLevel = 0;
       const motionTimestamp = Date.now();
+
+      if (data.length >= 7) {
+        setEnvVitals({
+          temp: parseFloat(data[4]) || "--",
+          humidity: parseFloat(data[5]) || "--",
+          airQuality: parseFloat(data[6]) || "--"
+        });
+      }
 
       if (motionLevel > 15.0) {
         fallSpikeAtRef.current = motionTimestamp;
@@ -527,6 +544,9 @@ export default function Home() {
               mqttConnected={isHardwareConnected}
               onOpenMetricDetail={setActiveMetricModal}
               onOpenTelemetryConsole={() => setIsDrawerOpen(true)}
+              envTemp={envVitals.temp}
+              envHumidity={envVitals.humidity}
+              airQuality={envVitals.airQuality}
             />
           )}
 

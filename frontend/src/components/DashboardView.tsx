@@ -8,6 +8,7 @@ import { SamsungGalaxyRings } from "./SamsungGalaxyRings";
 import { MetricDetailData } from "./MetricDetailModal";
 import { getDecryptedTelemetryRecords } from "@/utils/telemetryBuffer";
 import { useHealthNotifications } from "../hooks/useHealthNotifications";
+import { ThermometerSun, Droplets, Wind } from "lucide-react";
 
 type GpsStatus =
   | { state: "searching" }
@@ -42,6 +43,9 @@ interface DashboardViewProps {
   mqttConnected: boolean;
   onOpenMetricDetail: (metric: MetricDetailData) => void;
   onOpenTelemetryConsole: () => void;
+  envTemp?: string | number;
+  envHumidity?: string | number;
+  airQuality?: string | number;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -56,6 +60,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   mqttConnected,
   onOpenMetricDetail,
   onOpenTelemetryConsole,
+  envTemp = "--",
+  envHumidity = "--",
+  airQuality = "--",
 }) => {
   const [derivedHrv, respRate, stress] = useMemo((): [number | string, number | string, string] => {
     if (fingerPresent === 0 || hr === "--") return ["--", "--", "--"];
@@ -225,7 +232,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       />
 
       {/* Tabs */}
-      <div className="flex bg-slate-900/50 rounded-xl p-1 shadow-inner border border-slate-800">
+      <div className="flex p-1 space-x-2 bg-slate-900 rounded-xl mb-4">
         <button
           onClick={() => setActiveTab('daily')}
           className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
@@ -246,6 +253,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         >
           Exercise
         </button>
+      </div>
+
+      {/* Environment Section */}
+      <div className="grid grid-cols-3 gap-3 mb-4 animate-fade-in">
+        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg backdrop-blur-xl">
+          <ThermometerSun className="w-6 h-6 text-amber-400 mb-2" />
+          <span className="text-xl font-bold text-slate-100">{envTemp !== "--" ? `${envTemp}°` : "--"}</span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">Amb Temp</span>
+        </div>
+        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg backdrop-blur-xl">
+          <Droplets className="w-6 h-6 text-blue-400 mb-2" />
+          <span className="text-xl font-bold text-slate-100">{envHumidity !== "--" ? `${envHumidity}%` : "--"}</span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">Humidity</span>
+        </div>
+        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col items-center justify-center shadow-lg backdrop-blur-xl">
+          <Wind className="w-6 h-6 text-emerald-400 mb-2" />
+          <span className="text-xl font-bold text-slate-100">{airQuality}</span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 mt-1">Air Qual</span>
+        </div>
       </div>
 
       {activeTab === 'daily' && (
