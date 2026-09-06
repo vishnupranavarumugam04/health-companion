@@ -54,13 +54,33 @@ export const useHealthNotifications = (
       return;
     }
 
-    const notify = (title: string, body: string) => {
+    const notify = async (title: string, body: string) => {
       playNotificationSound();
-      new Notification(title, {
-        body,
-        icon: '/favicon.ico', // standard fallback
-        vibrate: [200, 100, 200]
-      } as any);
+      
+      try {
+        // Attempt standard web notification (Works on Desktop / iOS)
+        new Notification(title, {
+          body,
+          icon: '/favicon.ico', // standard fallback
+          vibrate: [200, 100, 200]
+        } as any);
+      } catch (e) {
+        // Android Chrome throws 'Illegal constructor' and requires a Service Worker
+        try {
+          if (navigator.serviceWorker) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            if (regs && regs.length > 0) {
+              await regs[0].showNotification(title, {
+                body,
+                icon: '/favicon.ico',
+                vibrate: [200, 100, 200]
+              } as any);
+            }
+          }
+        } catch (swError) {
+          console.error("Service worker notification failed:", swError);
+        }
+      }
     };
 
     // 1. Sudden HR Spikes / Drops
