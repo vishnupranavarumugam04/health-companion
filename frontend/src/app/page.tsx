@@ -427,11 +427,11 @@ export default function Home() {
 
     // Edge AI Warnings
     if (aiStatus === "HEAT_STRESS_RISK") {
-      warnings.push({ type: "ai_heat", title: "EDGE AI DETECTION", message: `Heat Stress Risk detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
+      warnings.push({ type: "fall", title: "EDGE AI DETECTION", message: `Heat Stress Risk detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
     } else if (aiStatus === "RESPIRATORY_RISK") {
-      warnings.unshift({ type: "ai_resp", title: "EDGE AI DETECTION", message: `Respiratory Risk detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
+      warnings.unshift({ type: "fall", title: "EDGE AI DETECTION", message: `Respiratory Risk detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
     } else if (aiStatus === "HIGH_RISK") {
-      warnings.unshift({ type: "ai_high", title: "CRITICAL EDGE AI ALERT", message: `High-risk condition detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
+      warnings.unshift({ type: "fall", title: "CRITICAL EDGE AI ALERT", message: `High-risk condition detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
     }
 
     return warnings;
