@@ -16,12 +16,14 @@ import { MetricDetailModal, MetricDetailData } from "@/components/MetricDetailMo
 import { EarlyWarningModal, EarlyWarningItem, DisasterAlert } from "@/components/EarlyWarningModal";
 import { BottomNav } from "@/components/BottomNav";
 import { LoginPage } from "@/components/LoginPage";
+import { EdgeAIHealthCard } from "@/components/EdgeAIHealthCard";
 
 const MQTT_BROKER_URL = process.env.NEXT_PUBLIC_MQTT_BROKER_URL || "wss://broker.hivemq.com";
 const MQTT_BROKER_PORT = process.env.NEXT_PUBLIC_MQTT_BROKER_PORT || "8884";
 const PRIMARY_BROKER = `${MQTT_BROKER_URL.replace(/\/$/, "")}:${MQTT_BROKER_PORT}/mqtt`;
 const TOPIC = "kps_playz/sih/healthdata";
 const DISASTER_TOPIC = "kps_playz/sih/disaster_feed";
+const AI_TOPIC = "kps_playz/sih/ai";
 
 const initialVitals: VitalMetrics = {
   hr: "--",
@@ -56,6 +58,11 @@ export default function Home() {
     humidity: "--" as string | number,
     airQuality: "--" as string | number,
   });
+
+  // Edge AI State
+  const [aiStatus, setAiStatus] = useState<string>("AI WAITING");
+  const [aiConfidence, setAiConfidence] = useState<number>(0);
+  const [aiLastUpdated, setAiLastUpdated] = useState<number | null>(null);
 
   const [activeTab, setActiveTab] = useState<"dashboard" | "history" | "alerts" | "profile">("dashboard");
   const [theme, setTheme] = useState<"dark" | "light">("light");
@@ -290,6 +297,9 @@ export default function Home() {
         client.subscribe(DISASTER_TOPIC, (err) => {
           if (err) console.error("[MQTT] Disaster subscribe error:", err);
         });
+        client.subscribe(AI_TOPIC, (err) => {
+          if (err) console.error("[MQTT] AI subscribe error:", err);
+        });
       });
 
       client.on("message", (topic, message) => {
@@ -305,6 +315,23 @@ export default function Home() {
             }
           } catch {
             console.error("[MQTT] Invalid disaster payload");
+          }
+        } else if (topic === AI_TOPIC) {
+          try {
+            const payload = JSON.parse(message.toString());
+            console.log(`[EDGE AI MQTT] -> ${message.toString()}`);
+
+            if (
+                payload &&
+                typeof payload.status === "string" &&
+                typeof payload.confidence === "number"
+            ) {
+                setAiStatus(payload.status);
+                setAiConfidence(payload.confidence);
+                setAiLastUpdated(Date.now());
+            }
+          } catch {
+            console.error("[MQTT] Invalid Edge AI payload");
           }
         }
       });
@@ -398,8 +425,17 @@ export default function Home() {
       }
     }
 
+    // Edge AI Warnings
+    if (aiStatus === "HEAT_STRESS_RISK") {
+      warnings.push({ type: "ai_heat", title: "EDGE AI DETECTION", message: `Heat Stress Risk detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
+    } else if (aiStatus === "RESPIRATORY_RISK") {
+      warnings.unshift({ type: "ai_resp", title: "EDGE AI DETECTION", message: `Respiratory Risk detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
+    } else if (aiStatus === "HIGH_RISK") {
+      warnings.unshift({ type: "ai_high", title: "CRITICAL EDGE AI ALERT", message: `High-risk condition detected by on-device Edge AI.\nConfidence: ${(aiConfidence * 100).toFixed(2)}%`, value: "Edge AI" });
+    }
+
     return warnings;
-  }, [vitals, disasterAlert, fallDetected]);
+  }, [vitals, disasterAlert, fallDetected, aiStatus, aiConfidence]);
 
   useEffect(() => {
     const nextSignature = activeWarnings.map((warning) => warning.type).join("|");
@@ -532,24 +568,32 @@ export default function Home() {
         {/* View Switcher based on Active Tab */}
         <main className="flex-1 space-y-6 pt-2">
           {activeTab === "dashboard" && (
-            <DashboardView
-              userName={user.name}
-              hr={vitals.hr}
-              spo2={vitals.spo2}
-              temp={vitals.temp}
-              hrv={vitals.hrv}
-              fingerPresent={vitals.fingerPresent}
-              hasWarning={hasWarning}
-              warningMessage={activeWarnings[0]?.message}
-              mqttConnected={isHardwareConnected}
-              onOpenMetricDetail={setActiveMetricModal}
-              onOpenTelemetryConsole={() => setIsDrawerOpen(true)}
-              envTemp={envVitals.temp}
-              envHumidity={envVitals.humidity}
-              airQuality={envVitals.airQuality}
-              hardwareSteps={vitals.steps}
-              hardwareActivity={vitals.activity}
-            />
+            <>
+              <DashboardView
+                userName={user.name}
+                hr={vitals.hr}
+                spo2={vitals.spo2}
+                temp={vitals.temp}
+                hrv={vitals.hrv}
+                fingerPresent={vitals.fingerPresent}
+                hasWarning={hasWarning}
+                warningMessage={activeWarnings[0]?.message}
+                mqttConnected={isHardwareConnected}
+                onOpenMetricDetail={setActiveMetricModal}
+                onOpenTelemetryConsole={() => setIsDrawerOpen(true)}
+                envTemp={envVitals.temp}
+                envHumidity={envVitals.humidity}
+                airQuality={envVitals.airQuality}
+                hardwareSteps={vitals.steps}
+                hardwareActivity={vitals.activity}
+              />
+              
+              <EdgeAIHealthCard 
+                status={aiStatus}
+                confidence={aiConfidence}
+                lastUpdated={aiLastUpdated}
+              />
+            </>
           )}
 
           {activeTab === "history" && (
